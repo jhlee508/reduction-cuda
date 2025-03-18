@@ -56,8 +56,14 @@ int main(int argc, char **argv) {
   /* Warmup */
   printf("Warmup... "); fflush(stdout);
   for (int i = 0; i < 3; ++i) {
-    reduction_initialize(arr_size);
+    reduction_initialize(arr, arr_size);
     reduction(arr, arr_size);
+    reduction_finalize();
+
+    reduction_initialize(arr, arr_size);
+    cublas_initialize(arr_size);
+    reduction_cublas(arr, arr_size);
+    cublas_finalize(NULL);
     reduction_finalize();
   }
   printf("Done!\n"); fflush(stdout);
@@ -67,12 +73,12 @@ int main(int argc, char **argv) {
   rand_arr(arr, arr_size);
   printf("Done!\n"); fflush(stdout);
 
+  /* Run my reduction */
   /* Initialize to run reduction */
   printf("Initializing..."); fflush(stdout);
-  reduction_initialize(arr_size);
+  reduction_initialize(arr, arr_size);
   printf("Done!\n"); fflush(stdout);
-
-  /* Run actual computation */
+  /* Calculate performance */
   double elapsed_time_sum = 0.0;
   double output = 0.0;
   for (int i = 0; i < num_iterations; ++i) {
@@ -83,9 +89,32 @@ int main(int argc, char **argv) {
     printf("%f sec\n", elapsed_time);
     elapsed_time_sum += elapsed_time;
   }   
-
   /* Finalize */
   printf("Finalizing..."); fflush(stdout);
+  reduction_finalize();
+  printf("Done!\n"); fflush(stdout);
+
+  /* Run cuBLAS reduction */
+  /* Initialize to run cuBLAS reduction */
+  printf("Initializing cuBLAS..."); fflush(stdout);
+  reduction_initialize(arr, arr_size);
+  cublas_initialize(arr_size);
+  printf("Done!\n"); fflush(stdout);
+  /* Calculate cuBLAS performance */
+  double cublas_elapsed_time_sum = 0.0;
+  double cublas_output = 0.0;
+  for (int i = 0; i < num_iterations; ++i) {
+    printf("Calculating cuBLAS (iter=%d)...", i); fflush(stdout);
+    double start_time = get_time();
+    // reduction_cublas(arr, arr_size);
+    reduction_cublas_v2(arr, arr_size);
+    double elapsed_time = get_time() - start_time;
+    printf("%f sec\n", elapsed_time);
+    cublas_elapsed_time_sum += elapsed_time;
+  }
+  /* Finalize cuBLAS */
+  printf("Finalizing cuBLAS..."); fflush(stdout);
+  cublas_finalize(&cublas_output);
   reduction_finalize();
   printf("Done!\n"); fflush(stdout);
 
@@ -96,10 +125,20 @@ int main(int argc, char **argv) {
   }
 
   /* Print results */
-  printf("> Reduced Sum: %.16f\n", output);
-  printf("> Avg. Elapsed time: %.3f sec\n", elapsed_time_sum / num_iterations); 
+  double cublas_elapsed_time_avg = cublas_elapsed_time_sum / num_iterations;
+  printf("> Reduced Sum (cuBLAS): %.12f\n", cublas_output);
+  printf("> Avg. Elapsed time (cuBLAS): %.3f sec\n", cublas_elapsed_time_avg);
+  printf("> Avg. Bandwidth (cuBLAS): %.3f GB/s\n", 
+    (double)arr_size * sizeof(double) / (1 << 30) / cublas_elapsed_time_avg);
+  
+  double elapsed_time_avg = elapsed_time_sum / num_iterations;
+  printf("> Reduced Sum: %.12f\n", output);
+  printf("> Avg. Elapsed time: %.3f sec\n", elapsed_time_avg); 
   printf("> Avg. Bandwidth: %.3f GB/s\n", 
-    (double)arr_size * sizeof(double) / (1 << 30) / (elapsed_time_sum / num_iterations));  
+    (double)arr_size * sizeof(double) / (1 << 30) / elapsed_time_avg);
+
+  printf("> Perf. against cuBLAS: %.1f %%\n", 
+    cublas_elapsed_time_avg / elapsed_time_avg * 100.0);
 
   return 0;
 }

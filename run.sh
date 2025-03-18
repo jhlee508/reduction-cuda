@@ -2,5 +2,5 @@
 
 # srun -p PV-Short --exclusive --gres=gpu:1 main $@
 
-srun -p PV-Short --exclusive --gres=gpu:1 \
+srun -p EA --exclusive --gres=gpu:1 \
   main $@
