@@ -126,13 +126,13 @@ int main(int argc, char **argv) {
   double cublas_elapsed_time_avg = cublas_elapsed_time_sum / num_iterations;
   printf("> Reduced Sum (cuBLAS): %.12f\n", cublas_output);
   printf("> Avg. Elapsed time (cuBLAS): %f sec\n", cublas_elapsed_time_avg);
-  printf("> Avg. Bandwidth (cuBLAS): %.3f GB/s\n", 
+  printf("> Avg. Bandwidth (cuBLAS): %.1f GB/s\n", 
     (double)arr_size * sizeof(double) / 1000000000 / cublas_elapsed_time_avg);
   
   double elapsed_time_avg = elapsed_time_sum / num_iterations;
   printf("> Reduced Sum: %.12f\n", output);
   printf("> Avg. Elapsed time: %f sec\n", elapsed_time_avg); 
-  printf("> Avg. Bandwidth: %.3f GB/s\n", 
+  printf("> Avg. Bandwidth: %.1f GB/s\n", 
     (double)arr_size * sizeof(double) / 1000000000 / elapsed_time_avg);
 
   printf("> Perf. against cuBLAS: %.1f %%\n", 

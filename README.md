@@ -15,16 +15,14 @@ A step-by-step optimization of reduction (sum) using CUDA to achieve near GPU's 
 The array size is set to `33554432` (=`2^25`) floats.
 
 
-CPU                                  | GB/s        | Memory BW Util. (%)
+Implementation                       | GB/s        | Memory BW Util. (%)
 ------------------------------------ | ----------- | --------------------
-1: CPU (Naive)                       | `7.958`     | 
-2: CPU (Multi-threading)             | `23.141`    | 
-
-GPU Kernels                          | GB/s        | Memory BW Util. (%)
------------------------------------- | ----------- | --------------------
+1: CPU (Single core)                 | `7.9`       | 0.9
+2: CPU (Multi-threading)             | `23.1`      | 2.6
 3: Naive                             |             |
-4: cuBLAS (gemv)                     | `402.402`   |
-5: cuBLAS (dot)                      | `457.692`   |
+4: cuBLAS (gemv)                     | `402.4`     | 44.9
+5: cuBLAS (dot)                      | `463.1`     | 51.6
+0: Peak Memory BW                    | `897`       | 100
 
 ## Usage
 ### Build
