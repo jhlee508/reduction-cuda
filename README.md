@@ -12,7 +12,7 @@ A step-by-step optimization of reduction (sum) using CUDA to achieve near peak m
 - CUDA Version: `12.4`
 
 ## Performance
-The array size is set to `33554432` (=`2^15`) floats.
+The array size is set to `33554432` (=`2^25`) floats.
 
 
 CPU                                  | GB/s        | Perf. against cuBLAS (%)
