@@ -1,5 +1,5 @@
 # Optimizing Reduction using CUDA from Scratch
-A step-by-step optimization of reduction (sum) using CUDA to achieve near peak memory bandwidth.
+A step-by-step optimization of reduction (sum) using CUDA to achieve near GPU's peak memory bandwidth.
 
 
 ## Setup
@@ -15,13 +15,13 @@ A step-by-step optimization of reduction (sum) using CUDA to achieve near peak m
 The array size is set to `33554432` (=`2^25`) floats.
 
 
-CPU                                  | GB/s        | Perf. against cuBLAS (%)
------------------------------------- | ----------- | -------------------------
+CPU                                  | GB/s        | Memory BW Util. (%)
+------------------------------------ | ----------- | --------------------
 1: CPU (Naive)                       | `7.958`     | 
 2: CPU (Multi-threading)             | `23.141`    | 
 
-GPU Kernels                          | GB/s        | Perf. against cuBLAS (%)
------------------------------------- | ----------- | -------------------------
+GPU Kernels                          | GB/s        | Memory BW Util. (%)
+------------------------------------ | ----------- | --------------------
 3: Naive                             |             |
 4: cuBLAS (gemv)                     | `402.402`   |
 5: cuBLAS (dot)                      | `457.692`   |
