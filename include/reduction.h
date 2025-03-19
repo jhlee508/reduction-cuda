@@ -25,7 +25,9 @@
 #define CEIL_DIV(x, y) (((x) + (y) - 1) / (y))
 
 #define BLOCK_SIZE 128
-
+#define BLOCK_SIZE_2 256
+#define BLOCK_SIZE_3 512
+#define BLOCK_SIZE_4 1024
 
 double reduction_cpu(double* arr, int size);
 

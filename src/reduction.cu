@@ -42,27 +42,65 @@ double reduction_cpu(double* arr, int size) {
 
 void reduction(double* arr, int size) {
 
-  /* 3. Interleaved Addressing */
-  // Level 0: CEIL_DIV(33554432, 128) = 262144 blocks
-  dim3 blockDim0(BLOCK_SIZE);
-  dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
-  interleaved_kernel<<<gridDim0, blockDim0, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  CHECK_CUDA(cudaDeviceSynchronize());
-  // Level 1: CEIL_DIV(262144, 128) = 2048 blocks
-  dim3 blockDim1(BLOCK_SIZE);
-  dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
-  interleaved_kernel<<<gridDim1, blockDim1, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  CHECK_CUDA(cudaDeviceSynchronize());
-  // Level 3: CEIL_DIV(2048, 128) = 16 blocks
-  dim3 blockDim2(BLOCK_SIZE);
-  dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
-  interleaved_kernel<<<gridDim2, blockDim2, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  // Level 4: CEIL_DIV(16, 128) = 1 blocks
-  dim3 blockDim3(BLOCK_SIZE);
-  dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
-  interleaved_kernel<<<gridDim3, blockDim3, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+  /* 3. Interleaved Addressing 
+      - Level 0: CEIL_DIV(33554432, 128) = 262144 blocks
+      - Level 1: CEIL_DIV(262144, 128) = 2048 blocks
+      - Level 2: CEIL_DIV(2048, 128) = 16 blocks
+      - Level 3: CEIL_DIV(16, 128) = 1 blocks
+  */
+  // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
+  // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
+  // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
+  // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
+  // interleaved_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // interleaved_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // interleaved_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // interleaved_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* Sequential Addressing */
+  /* 4. Interleaved Addressing v2 (Contiguous)
+      - Level 0: CEIL_DIV(33554432, 128) = 262144 blocks
+      - Level 1: CEIL_DIV(262144, 128) = 2048 blocks
+      - Level 2: CEIL_DIV(2048, 128) = 16 blocks
+      - Level 3: CEIL_DIV(16, 128) = 1 blocks
+  */
+  // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
+  // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
+  // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
+  // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
+  // interleaved_kernel_v2<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // interleaved_kernel_v2<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // interleaved_kernel_v2<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // interleaved_kernel_v2<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+
+  /* 5. Sequential Addressing 
+      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
+      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
+      - Level 2: CEIL_DIV(512, 256) = 2 blocks
+      - Level 3: CEIL_DIV(2, 256) = 1 blocks
+  */
+  // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE_2));
+  // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE_2));
+  // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE_2));
+  // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE_2));
+  // sequential_kernel<<<gridDim0, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_kernel<<<gridDim1, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_kernel<<<gridDim2, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_kernel<<<gridDim3, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+
+  /* 6. Sequential Addressing (Warp Shuffle) 
+        - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
+        - Level 1: CEIL_DIV(131072, 256) = 512 blocks
+        - Level 2: CEIL_DIV(512, 256) = 2 blocks
+        - Level 3: CEIL_DIV(2, 256) = 1 blocks
+  */
+  dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE_2));
+  dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE_2));
+  dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE_2));
+  dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE_2));
+  sequential_warp_shfl_kernel<<<gridDim0, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_arr, size, d_output);
+  sequential_warp_shfl_kernel<<<gridDim1, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  sequential_warp_shfl_kernel<<<gridDim2, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  sequential_warp_shfl_kernel<<<gridDim3, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
   // DO NOT REMOVE; NEED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
