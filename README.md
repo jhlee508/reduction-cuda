@@ -42,9 +42,10 @@ $ ./main -w -n 5 -v 33554432
 Usage: main [-h] [-w] [-v] [-n 'num_iterations'] <arr_size>
 Options:
   -h: print this page.
-  -n: array size. (default: 100000).
-  -v: validate reduction. (default: off)
   -w: warmup. (default: off)
+  -v: validate reduction. (default: off)
+  -n: number of iterations. (default: 1)
+  <arr_size>: size of the array. (default: 100000)
 ```
 
 ## References

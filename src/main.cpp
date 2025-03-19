@@ -7,12 +7,13 @@
 #include "util.h"
 
 static void print_help(const char *prog_name) {
-  printf("Usage: %s [-h] [-w] [-v] [-n 'num_iterations'] arr_size\n", prog_name);
+  printf("Usage: %s [-h] [-w] [-v] [-n 'num_iterations'] <arr_size>\n", prog_name);
   printf("Options:\n");
   printf("  -h: print this page.\n");
-  printf("  -n: array size. (default: 100000).\n");
-  printf("  -v: validate reduction. (default: off)\n");
   printf("  -w: warmup. (default: off)\n");
+  printf("  -v: validate reduction. (default: off)\n");
+  printf("  -n: number of iterations. (default: 1)\n");
+  printf("  <arr_size>: size of the array. (default: 100000)\n");
 }
 
 static int arr_size = 100000;
