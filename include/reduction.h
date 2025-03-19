@@ -22,13 +22,14 @@
     }                                                                        \
   } while (0)
 
-#define THREADS_PER_BLOCK 1024
-#define ELEMENTS_PER_BLOCK (THREADS_PER_BLOCK * 2)
+#define CEIL_DIV(x, y) (((x) + (y) - 1) / (y))
+
+#define BLOCK_SIZE 128
 
 
 double reduction_cpu(double* arr, int size);
 
-double reduction(double* arr, int size);
+void reduction(double* arr, int size);
 
 void reduction_cublas(double* arr, int size);
 
@@ -38,6 +39,6 @@ void reduction_initialize(double* arr, int size);
 
 void cublas_initialize(int size);
 
-void reduction_finalize();
+void reduction_finalize(double *output);
 
 void cublas_finalize(double *output);

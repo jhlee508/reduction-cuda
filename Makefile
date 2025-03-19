@@ -1,5 +1,9 @@
 TARGET=main
-OBJECTS=src/main.o src/util.o src/reduction.o
+
+KERNEL_SRC := $(wildcard kernels/*.cu)
+KERNEL_OBJS := $(patsubst kernels/%.cu, kernels/%.o, $(KERNEL_SRC))
+
+OBJECTS=src/main.o src/util.o src/reduction.o $(KERNEL_OBJS)
 INCLUDES=-I/usr/local/cuda/include -I./include 
 
 CXX=g++
@@ -16,6 +20,9 @@ all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CPPFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS) $(LDLIBS)
+
+kernels/%.o: kernels/%.cu
+	$(NVCC) $(CUDA_CFLAGS) -c -o $@ $^
 
 src/%.o: src/%.cu
 	$(NVCC) $(CUDA_CFLAGS) -c -o $@ $^

@@ -2,12 +2,24 @@
 #include <cublas_v2.h>
 
 #include "reduction.h"
+#include "kernels.cuh"
 
-static double *d_arr, *d_output;
-static double *d_ones;
+static double* d_arr;
+static double* d_output;
+
 static cublasHandle_t handle;
+static double* d_cublas_output;
+static double* d_ones;
 
-double reduction_cpu(double* arr, int size) {
+double cpu_single(double* arr, int size) {
+  double sum = 0.0f;
+  for (int i = 0; i < size; i++) { 
+    sum += arr[i]; 
+  }
+  return sum;
+}
+
+double cpu_multithreading(double* arr, int size) {
   double sum = 0.0f;
 #pragma omp parallel for reduction(+:sum)
   for (int i = 0; i < size; i++) { 
@@ -16,19 +28,44 @@ double reduction_cpu(double* arr, int size) {
   return sum;
 }
 
-double reduction(double* arr, int size) {
+double reduction_cpu(double* arr, int size) {
   double sum = 0.0;
-  // Remove this line after you complete the matmul on GPU
-  sum = reduction_cpu(arr, size);
+  
+  /* 1. CPU Single Core */
+  // sum = cpu_single(arr, size);
 
-  // (TODO) Launch kernel on a GPU
+  /* 2. CPU Multi-threading */
+  // sum = cpu_multithreading(arr, size);
 
-  // (TODO) Download sum from GPU
+  return sum;
+}
+
+void reduction(double* arr, int size) {
+
+  /* 3. Interleaved Addressing */
+  // Level 0: CEIL_DIV(33554432, 128) = 262144 blocks
+  dim3 blockDim0(BLOCK_SIZE);
+  dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
+  interleaved_kernel<<<gridDim0, blockDim0, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  CHECK_CUDA(cudaDeviceSynchronize());
+  // Level 1: CEIL_DIV(262144, 128) = 2048 blocks
+  dim3 blockDim1(BLOCK_SIZE);
+  dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
+  interleaved_kernel<<<gridDim1, blockDim1, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  CHECK_CUDA(cudaDeviceSynchronize());
+  // Level 3: CEIL_DIV(2048, 128) = 16 blocks
+  dim3 blockDim2(BLOCK_SIZE);
+  dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
+  interleaved_kernel<<<gridDim2, blockDim2, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // Level 4: CEIL_DIV(16, 128) = 1 blocks
+  dim3 blockDim3(BLOCK_SIZE);
+  dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
+  interleaved_kernel<<<gridDim3, blockDim3, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+
+  /* Sequential Addressing */
 
   // DO NOT REMOVE; NEED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
-
-  return sum;
 }
 
 void reduction_cublas(double* arr, int size) {
@@ -42,14 +79,14 @@ void reduction_cublas(double* arr, int size) {
     d_arr, size,        // lda = size
     d_ones, 1,          // Vector: [size x 1]
     &beta,
-    d_output, 1));      // Output: [1 x 1]
+    d_cublas_output, 1));      // Output: [1 x 1]
   
   // DO NOT REMOVE; NEEDED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
 }
 
 void reduction_cublas_v2(double* arr, int size) {
-  CHECK_CUBLAS(cublasDdot(handle, size, d_arr, 1, d_ones, 1, d_output));
+  CHECK_CUBLAS(cublasDdot(handle, size, d_arr, 1, d_ones, 1, d_cublas_output));
 
   // DO NOT REMOVE; NEEDED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
@@ -58,31 +95,37 @@ void reduction_cublas_v2(double* arr, int size) {
 void reduction_initialize(double* arr, int size) {
   CHECK_CUDA(cudaMalloc(&d_arr, size * sizeof(double)));
   CHECK_CUDA(cudaMemcpy(d_arr, arr, size * sizeof(double), cudaMemcpyHostToDevice));
+
+  CHECK_CUDA(cudaMalloc(&d_output, size * sizeof(double)));
 }
 
 void cublas_initialize(int size) {
   CHECK_CUBLAS(cublasCreate(&handle));
   // CHECK_CUBLAS(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH)); /* To enable TC */
   
+  CHECK_CUDA(cudaMalloc(&d_cublas_output, sizeof(double)));
+
   CHECK_CUDA(cudaMalloc(&d_ones, size * sizeof(double)));
   double* h_ones = new double[size];
   for (int i = 0; i < size; i++) h_ones[i] = 1.0;
   cudaMemcpy(d_ones, h_ones, size * sizeof(double), cudaMemcpyHostToDevice);
   delete[] h_ones;
-  
-  CHECK_CUDA(cudaMalloc(&d_output, sizeof(double)));
 }
 
-void reduction_finalize() {
+void reduction_finalize(double* output) {
+  if (output != nullptr)
+    CHECK_CUDA(cudaMemcpy(output, d_output, sizeof(double), cudaMemcpyDeviceToHost));
+
   CHECK_CUDA(cudaFree(d_arr));
+  CHECK_CUDA(cudaFree(d_output));
 }
 
 void cublas_finalize(double* output) {
   if (output != nullptr)
-    CHECK_CUDA(cudaMemcpy(output, d_output, sizeof(double), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(output, d_cublas_output, sizeof(double), cudaMemcpyDeviceToHost));
   
+  CHECK_CUDA(cudaFree(d_cublas_output));
   CHECK_CUDA(cudaFree(d_ones));
-  CHECK_CUDA(cudaFree(d_output));
 
   CHECK_CUBLAS(cublasDestroy(handle));
 }

@@ -12,17 +12,19 @@ A step-by-step optimization of reduction (sum) using CUDA to achieve near GPU's 
 - CUDA Version: `12.4`
 
 ## Performance
-The array size is set to `33554432` (=`2^25`) floats.
-
+The input array size is set to `33554432` (=`2^25`) doubles.
 
 Implementation                       | GB/s        | Memory BW Util. (%)
 ------------------------------------ | ----------- | --------------------
 1: CPU (Single core)                 | `7.9`       | 0.9
 2: CPU (Multi-threading)             | `23.1`      | 2.6
-3: Naive                             |             |
-4: cuBLAS (gemv)                     | `402.4`     | 44.9
-5: cuBLAS (dot)                      | `463.1`     | 51.6
+3: Interleaved Addressing            | `340.6`     | 38.0
+4: Sequential Addressing             |             |
+4: cuBLAS (GEMV)                     | `402.4`     | 44.9
+5: cuBLAS (DOT)                      | `456.5`     | 49.8
 0: Peak Memory BW                    | `897`       | 100
+
+cf. When using cuBLAS to perform the sum reduction, it’s actually executing a GEMV or DOT operation that reads from two separate memory buffers (the input array and the “ones” vector). This effectively doubles the amount of data that must be transferred from memory and halves the achievable bandwidth compared to a true single-input reduction.
 
 ## Usage
 ### Build

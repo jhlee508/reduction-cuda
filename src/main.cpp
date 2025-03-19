@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
   /* Allocate an array */
   printf("Allocating an array..."); fflush(stdout);
-  double *arr = alloc_arr(arr_size);
+  double* arr = alloc_arr(arr_size);
   printf("Done!\n"); fflush(stdout);
 
   /* Initialize an array */
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
   /* Finalize cuBLAS */
   printf("Finalizing cuBLAS..."); fflush(stdout);
   cublas_finalize(&cublas_output);
-  reduction_finalize();
+  reduction_finalize(NULL);
   printf("Done!\n"); fflush(stdout);
 
   /* Run my reduction */
@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
   /* Warmup */
   if (warmup) {
     printf("Warmup..."); fflush(stdout);
+    reduction_cpu(arr, arr_size);
     reduction(arr, arr_size);
     printf("Done!\n"); fflush(stdout);
   }
@@ -106,14 +107,15 @@ int main(int argc, char **argv) {
   for (int i = 0; i < num_iterations; ++i) {
     printf("Calculating (iter=%d)...", i); fflush(stdout);
     double start_time = get_time();
-    output = reduction(arr, arr_size);
+    // output = reduction_cpu(arr, arr_size);
+    reduction(arr, arr_size);
     double elapsed_time = get_time() - start_time;
     printf("%f sec\n", elapsed_time);
     elapsed_time_sum += elapsed_time;
   }   
   /* Finalize */
   printf("Finalizing..."); fflush(stdout);
-  reduction_finalize();
+  reduction_finalize(&output);
   printf("Done!\n"); fflush(stdout);
 
   /* Validation */
