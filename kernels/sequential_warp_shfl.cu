@@ -1,7 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
-// Warp-level shuffle sum                                                     //                            
-////////////////////////////////////////////////////////////////////////////////
-__inline__ __device__ double warpReduceSum(double val, unsigned int mask = 0xffffffff) {
+__inline__ __device__ double warpShuffle(double val, unsigned int mask = 0xffffffff) {
   for (int offset = warpSize / 2; offset > 0; offset >>= 1) {
     val += __shfl_down_sync(mask, val, offset);
   }
@@ -31,7 +28,7 @@ __global__ void sequential_warp_shfl_kernel(double* arr, int size, double* res) 
   /* 3. Warp-level shuffle reduce for the final <= 32 threads */
   double sum = 0.0;
   if (lid < warpSize) {
-    sum = warpReduceSum(s_arr[lid]);
+    sum = warpShuffle(s_arr[lid]);
   }
 
   /* 4. Store to GMEM */

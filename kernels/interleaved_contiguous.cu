@@ -1,4 +1,4 @@
-__global__ void interleaved_kernel_v2(double* arr, int size, double* res) {
+__global__ void interleaved_contiguous_kernel(double* arr, int size, double* res) {
   extern __shared__ double s_arr[];
 
   int lid = threadIdx.x;
