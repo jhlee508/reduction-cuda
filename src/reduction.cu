@@ -88,10 +88,10 @@ void reduction(double* arr, int size) {
   // sequential_kernel<<<gridDim3, BLOCK_SIZE_2, BLOCK_SIZE_2 * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
   /* 6. Sequential Addressing (Warp Shuffle) 
-        - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
-        - Level 1: CEIL_DIV(131072, 256) = 512 blocks
-        - Level 2: CEIL_DIV(512, 256) = 2 blocks
-        - Level 3: CEIL_DIV(2, 256) = 1 blocks
+      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
+      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
+      - Level 2: CEIL_DIV(512, 256) = 2 blocks
+      - Level 3: CEIL_DIV(2, 256) = 1 blocks
   */
   dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE_2));
   dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE_2));
