@@ -1,5 +1,5 @@
 # Optimizing Reduction using CUDA from Scratch
-A step-by-step optimization of parallel sum reduction using CUDA to achieve near GPU's peak memory bandwidth.
+A step-by-step optimization of parallel sum reduction using CUDA to achieve GPU's peak memory bandwidth.
 
 
 ## Setup
