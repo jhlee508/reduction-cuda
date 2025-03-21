@@ -11,10 +11,11 @@ __global__ void sequential_unroll_last_kernel(double* arr, int size, double* res
   extern __shared__ double s_arr[];
 
   int lid = threadIdx.x;
-  int gid = blockIdx.x * blockDim.x + threadIdx.x;
+  int gid = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
   /* 1. Load to SMEM */
   s_arr[lid] = (gid < size) ? arr[gid] : 0;
+	s_arr[lid] += (gid + blockDim.x) < size ? arr[gid + blockDim.x] : 0;
   __syncthreads(); 
 
   /* 2. Reduction in SMEM */

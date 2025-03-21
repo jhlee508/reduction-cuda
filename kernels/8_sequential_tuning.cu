@@ -7,7 +7,7 @@ __inline__ __device__ void warpReduceSum(volatile double* s_arr, int lid) {
   s_arr[lid] += s_arr[lid + 1];
 }
 
-__global__ void sequential_unroll_all_multi_load_kernel(double* arr, int size, double* res) {
+__global__ void sequential_tuning_kernel(double* arr, int size, double* res) {
   extern __shared__ double s_arr[];
 
   int lid = threadIdx.x;

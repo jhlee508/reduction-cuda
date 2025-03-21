@@ -31,10 +31,10 @@ double cpu_multithreading(double* arr, int size) {
 double reduction_cpu(double* arr, int size) {
   double sum = 0.0;
   
-  /* 1. CPU Single Core */
+  /* CPU Single Core */
   // sum = cpu_single(arr, size);
 
-  /* 2. CPU Multi-threading */
+  /* CPU Multi-threading */
   // sum = cpu_multithreading(arr, size);
 
   return sum;
@@ -42,12 +42,15 @@ double reduction_cpu(double* arr, int size) {
 
 void reduction(double* arr, int size) {
 
-  /* 3. Interleaved Addressing 
+  /* Total reduction is computed in 4 steps or levels (kernels) 
+     with BLOCK_SIZE 256 and 33554432 elements as follows:
       - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
       - Level 1: CEIL_DIV(131072, 256) = 512 blocks
       - Level 2: CEIL_DIV(512, 256) = 2 blocks
       - Level 3: CEIL_DIV(2, 256) = 1 blocks
   */
+
+  /* 1. Interleaved Addressing */
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
@@ -57,7 +60,7 @@ void reduction(double* arr, int size) {
   // interleaved_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
   // interleaved_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 4. Interleaved Addressing (Contiguous) */
+  /* 2. Interleaved Addressing (Contiguous Threads) */
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
@@ -67,12 +70,7 @@ void reduction(double* arr, int size) {
   // interleaved_contiguous_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
   // interleaved_contiguous_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 5. Sequential Addressing 
-      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
-      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
-      - Level 2: CEIL_DIV(512, 256) = 2 blocks
-      - Level 3: CEIL_DIV(2, 256) = 1 blocks
-  */
+  /* 3. Sequential Addressing */
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
@@ -82,61 +80,63 @@ void reduction(double* arr, int size) {
   // sequential_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
   // sequential_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 6. Sequential Addressing (Warp Shuffle) 
-      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
-      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
-      - Level 2: CEIL_DIV(512, 256) = 2 blocks
-      - Level 3: CEIL_DIV(2, 256) = 1 blocks
-  */
+  /* 4. Sequential Addressing (Multiple Load per Thread) */
+  // const int HALF_BLOCK_SIZE = BLOCK_SIZE / 2;
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
   // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
-  // sequential_warp_shfl_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+  // sequential_multi_load_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_multi_load_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_multi_load_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_multi_load_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+
+  /* 5. Sequential Addressing (Warp Shuffle Last Warp) */
+  // const int HALF_BLOCK_SIZE = BLOCK_SIZE / 2;
+  // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
+  // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
+  // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
+  // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
+  // sequential_warp_shfl_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_warp_shfl_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_warp_shfl_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_warp_shfl_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
   
-  /* 7. Sequential Addressing (Unroll the Last Warp)
-      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
-      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
-      - Level 2: CEIL_DIV(512, 256) = 2 blocks
-      - Level 3: CEIL_DIV(2, 256) = 1 blocks
-  */
+  /* 6. Sequential Addressing (Unroll Last Warp) */
+  // const int HALF_BLOCK_SIZE = BLOCK_SIZE / 2;
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
   // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
-  // sequential_unroll_last_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  // sequential_unroll_last_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  // sequential_unroll_last_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  // sequential_unroll_last_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+  // sequential_unroll_last_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_unroll_last_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_unroll_last_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_unroll_last_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 8. Sequential Addressing (Unroll All)
-      - Level 0: CEIL_DIV(33554432, 256) = 131072 blocks
-      - Level 1: CEIL_DIV(131072, 256) = 512 blocks
-      - Level 2: CEIL_DIV(512, 256) = 2 blocks
-      - Level 3: CEIL_DIV(2, 256) = 1 blocks
-  */
+  /* 7. Sequential Addressing (Unroll All) */
+  // const int HALF_BLOCK_SIZE = BLOCK_SIZE / 2;
   // dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE));
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
   // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
-  // sequential_unroll_all_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  // sequential_unroll_all_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  // sequential_unroll_all_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  // sequential_unroll_all_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+  // sequential_unroll_all_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_unroll_all_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_unroll_all_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_unroll_all_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 9. Sequential Addressing (Unroll All + Multiple Load) */
-  dim3 gridDim0(CEIL_DIV(size, BLOCK_SIZE*2));
-  dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE*2));
-  dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE*2));
-  dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE*2));
-  sequential_unroll_all_multi_load_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  sequential_unroll_all_multi_load_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  sequential_unroll_all_multi_load_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  sequential_unroll_all_multi_load_kernel<<<gridDim3, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
-
+  /* 9. Sequential Addressing (Tuning) 
+      - Level 0: CEIL_DIV(33554432, 512) = 65536 blocks
+      - Level 1: CEIL_DIV(65536, 512) = 128 blocks
+      - Level 2: CEIL_DIV(128, 512) = 1 blocks
+  */
+  const int DOUBLE_BLOCK_SIZE = BLOCK_SIZE * 2;
+  dim3 gridDim0(CEIL_DIV(size, DOUBLE_BLOCK_SIZE));
+  dim3 gridDim1(CEIL_DIV(gridDim0.x, DOUBLE_BLOCK_SIZE));
+  dim3 gridDim2(CEIL_DIV(gridDim1.x, DOUBLE_BLOCK_SIZE));
+  sequential_tuning_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  sequential_tuning_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  sequential_tuning_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  
   // DO NOT REMOVE; NEED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
 }

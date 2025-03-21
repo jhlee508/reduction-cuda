@@ -11,30 +11,33 @@ A step-by-step optimization of parallel sum reduction using CUDA to achieve near
 ### Software
 - CUDA Version: `12.4`
 
+
 ## Performance
 The input array size is set to `33554432` (=`2^25`) doubles, and the number of threads in the thread block (`BLOCK_SIZE`) is set to `256`.
 
 Implementation                                         | GB/s        | Memory BW Util. (%)
 ------------------------------------------------------ | ----------- | --------------------
-1: CPU (Single core)                                   | `7.9`       | 0.9
-2: CPU (Multi-threading)                               | `23.1`      | 2.6
-3: Interleaved Addressing                              | `303.0`     | 33.8
+CPU (Single core)                                      | `7.9`       | 0.9
+CPU (Multi-threading)                                  | `23.1`      | 2.6
+1: Interleaved Addressing                              | `303.0`     | 33.8
 cuBLAS (GEMV)                                          | `402.4`     | 44.9
-4: Interleaved Addressing (+ Contiguous)               | `435.4`     | 48.5
+2: Interleaved Addressing (+ Contiguous Thread)        | `427.0`     | 47.6
 cuBLAS (DOT)                                           | `446.5`     | 49.8
-5: Sequential Addressing                               | `649.5`     | 72.4
-6: Sequential Addressing (+ Warp Shuffle)              | `720.1`     | 80.3
-7: Sequential Addressing (+ Unroll Last Warp)          | `773.6`     | 86.2
-8: Sequential Addressing (+ Unroll All)                | `782.8`     | 87.3
-9: Sequential Addressing (+ Unroll All, Multiple Load) | `895.4`     | 99.8
+3: Sequential Addressing                               | `649.5`     | 72.4
+4: Sequential Addressing (+ Multiple Load per Thread)  | `872.6`     | 97.3
+5: Sequential Addressing (+ Warp Shuffle Last Warp)    | `876.8`     | 97.7
+6: Sequential Addressing (+ Unroll Last Warp)          | `879.8`     | 98.1
+7: Sequential Addressing (+ Unroll All)                | `884.4`     | 98.6
+8: Sequential Addressing (+ Final Tuning)              | `896.1`     | 99.9
 0: Peak Memory Bandwidth                               | `897`       | 100
 
 cf. When using cuBLAS to perform the sum reduction, it’s actually executing a GEMV or DOT operation that reads from two separate memory buffers (the input array and the “ones” vector). This effectively doubles the amount of data that must be transferred from memory and halves the achievable bandwidth compared to a true single-input reduction.
 
+
 ## Usage
 ### Build
 ```bash
-$ make -j8
+$ make
 ```
 ### Run
 ```bash
