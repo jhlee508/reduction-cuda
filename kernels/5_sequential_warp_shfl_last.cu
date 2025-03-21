@@ -5,7 +5,7 @@ __inline__ __device__ double warpShuffle(double val, unsigned int mask = 0xfffff
   return val;
 }
 
-__global__ void sequential_warp_shfl_kernel(double* arr, int size, double* res) {
+__global__ void sequential_warp_shfl_last_kernel(double* arr, int size, double* res) {
   extern __shared__ double s_arr[]; 
 
   int lid = threadIdx.x;                       

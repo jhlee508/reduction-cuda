@@ -20,7 +20,6 @@ __global__ void sequential_tuning_kernel(double* arr, int size, double* res) {
   __syncthreads();
 
   /* 2. Reduction in SMEM (only when the BLOCK_SIZE is 256!) */
-  // if (lid < 256) { s_arr[lid] += s_arr[lid + 256]; } __syncthreads();
   if (lid < 128) { s_arr[lid] += s_arr[lid + 128]; } __syncthreads();
   if (lid < 64) { s_arr[lid] += s_arr[lid + 64]; } __syncthreads();
   

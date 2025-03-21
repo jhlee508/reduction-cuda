@@ -97,10 +97,10 @@ void reduction(double* arr, int size) {
   // dim3 gridDim1(CEIL_DIV(gridDim0.x, BLOCK_SIZE));
   // dim3 gridDim2(CEIL_DIV(gridDim1.x, BLOCK_SIZE));
   // dim3 gridDim3(CEIL_DIV(gridDim2.x, BLOCK_SIZE));
-  // sequential_warp_shfl_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  // sequential_warp_shfl_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
+  // sequential_warp_shfl_last_kernel<<<gridDim0, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_warp_shfl_last_kernel<<<gridDim1, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_warp_shfl_last_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  // sequential_warp_shfl_last_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
   
   /* 6. Sequential Addressing (Unroll Last Warp) */
   // const int HALF_BLOCK_SIZE = BLOCK_SIZE / 2;
@@ -124,7 +124,20 @@ void reduction(double* arr, int size) {
   // sequential_unroll_all_kernel<<<gridDim2, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
   // sequential_unroll_all_kernel<<<gridDim3, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim2.x, d_output);
 
-  /* 9. Sequential Addressing (Tuning) 
+  /* 8. Sequential Addressing (Tuning) 
+      - Level 0: CEIL_DIV(33554432, 512) = 65536 blocks
+      - Level 1: CEIL_DIV(65536, 512) = 128 blocks
+      - Level 2: CEIL_DIV(128, 512) = 1 blocks
+  */
+  // const int DOUBLE_BLOCK_SIZE = BLOCK_SIZE * 2;
+  // dim3 gridDim0(CEIL_DIV(size, DOUBLE_BLOCK_SIZE));
+  // dim3 gridDim1(CEIL_DIV(gridDim0.x, DOUBLE_BLOCK_SIZE));
+  // dim3 gridDim2(CEIL_DIV(gridDim1.x, DOUBLE_BLOCK_SIZE));
+  // sequential_tuning_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
+  // sequential_tuning_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
+  // sequential_tuning_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
+  
+  /* 9. Full Warp-level Reduction 
       - Level 0: CEIL_DIV(33554432, 512) = 65536 blocks
       - Level 1: CEIL_DIV(65536, 512) = 128 blocks
       - Level 2: CEIL_DIV(128, 512) = 1 blocks
@@ -133,10 +146,10 @@ void reduction(double* arr, int size) {
   dim3 gridDim0(CEIL_DIV(size, DOUBLE_BLOCK_SIZE));
   dim3 gridDim1(CEIL_DIV(gridDim0.x, DOUBLE_BLOCK_SIZE));
   dim3 gridDim2(CEIL_DIV(gridDim1.x, DOUBLE_BLOCK_SIZE));
-  sequential_tuning_kernel<<<gridDim0, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_arr, size, d_output);
-  sequential_tuning_kernel<<<gridDim1, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim0.x, d_output);
-  sequential_tuning_kernel<<<gridDim2, BLOCK_SIZE, BLOCK_SIZE * sizeof(double)>>>(d_output, gridDim1.x, d_output);
-  
+  full_warp_shfl_kernel<<<gridDim0, BLOCK_SIZE>>>(d_arr, size, d_output);
+  full_warp_shfl_kernel<<<gridDim1, BLOCK_SIZE>>>(d_output, gridDim0.x, d_output);
+  full_warp_shfl_kernel<<<gridDim2, BLOCK_SIZE>>>(d_output, gridDim1.x, d_output);
+
   // DO NOT REMOVE; NEED FOR TIME MEASURE
   CHECK_CUDA(cudaDeviceSynchronize());
 }

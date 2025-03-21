@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   //   cublas_elapsed_time_avg / elapsed_time_avg * 100.0);
 
   /* Print the memory bandwidth utilization */
-  double peak_bandwidth = 897; // for NVIDIA Tesla V100
+  double peak_bandwidth = 900; // for NVIDIA Tesla V100
   double bandwidth_util = (double)arr_size * sizeof(double) / 1000000000 / elapsed_time_avg / peak_bandwidth * 100.0;
   printf("> Memory Bandwidth Utilization: %.1f %% (Peak BW: %.1f GB/s)\n", bandwidth_util, peak_bandwidth);
 
