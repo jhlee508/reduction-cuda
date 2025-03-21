@@ -1,4 +1,4 @@
-__inline__ __device__ void warpReduceSum(volatile double* s_arr, int lid) {
+__forceinline__ __device__ void warpReduceSum(volatile double* s_arr, int lid) {
   s_arr[lid] += s_arr[lid + 32];
   s_arr[lid] += s_arr[lid + 16];
   s_arr[lid] += s_arr[lid + 8];

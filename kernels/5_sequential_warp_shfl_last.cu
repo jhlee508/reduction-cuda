@@ -1,4 +1,4 @@
-__inline__ __device__ double warpShuffle(double val, unsigned int mask = 0xffffffff) {
+__forceinline__ __device__ double warpShuffle(double val, unsigned int mask = 0xffffffff) {
   for (int offset = warpSize / 2; offset > 0; offset >>= 1) {
     val += __shfl_down_sync(mask, val, offset);
   }
