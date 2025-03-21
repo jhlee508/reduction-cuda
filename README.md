@@ -16,7 +16,7 @@ A step-by-step optimization of parallel sum reduction using CUDA to achieve GPU'
 The input array size is set to `33554432` (=`2^25`) doubles, and the number of threads in the thread block (`BLOCK_SIZE`) is set to `256`.
 
 Implementation                                         | GB/s        | Memory BW Util. (%)
------------------------------------------------------- | ----------- | --------------------
+:------------------------------------------------------|:-----------:|:--------------------:
 CPU (Single core)                                      | `7.9`       | 0.9
 CPU (Multi-threading)                                  | `23.1`      | 2.6
 1: Interleaved Addressing                              | `303.0`     | 33.8
